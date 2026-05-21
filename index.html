@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solo Tracker: Level Up</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* === TEMA E SFONDO === */
+        :root {
+            --bg-color: #050508;
+            --panel-bg: rgba(15, 15, 25, 0.85);
+            --primary: #8a2be2;
+            --primary-glow: #a855f7;
+            --secondary: #00ffff;
+            --text: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --gold: #ffd700;
+        }
+
+        body {
+            margin: 0; padding: 20px; font-family: 'Orbitron', sans-serif;
+            background-color: var(--bg-color); color: var(--text);
+            overflow-x: hidden; position: relative; height: 100vh; display: flex; flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .waves {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: 
+                repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(138, 43, 226, 0.05) 10px, rgba(138, 43, 226, 0.05) 11px),
+                repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(0, 255, 255, 0.03) 100px, rgba(0, 255, 255, 0.03) 101px);
+            background-size: 100% 200%;
+            animation: moveLines 15s linear infinite;
+            z-index: -1; pointer-events: none;
+        }
+
+        @keyframes moveLines {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 0% 100%; }
+        }
+
+        /* === LAYOUT E SCORRIMENTO === */
+        .header {
+            text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--primary); flex-shrink: 0;
+        }
+        
+        .status-bar {
+            display: flex; justify-content: center; gap: 15px; font-size: 0.9rem; font-weight: bold; flex-wrap: wrap;
+        }
+
+        .viewport {
+            flex-grow: 1; overflow: hidden; position: relative; width: 100%; max-width: 1000px; margin: 0 auto;
+        }
+
+        .track {
+            display: flex; height: 100%; width: 400%; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .slide {
+            width: 25%; height: 100%; padding: 10px; box-sizing: border-box; overflow-y: auto;
+        }
+
+        .panel {
+            background: var(--panel-bg); border: 1px solid var(--primary); border-radius: 10px;
+            padding: 15px; box-shadow: 0 0 15px rgba(138, 43, 226, 0.2); backdrop-filter: blur(5px);
+            min-height: 90%;
+        }
+
+        .panel h2 { margin-top: 0; color: var(--secondary); border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 1.2rem; }
+
+        .nav-controls {
+            display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 10px auto 0;
+            background: #111; padding: 10px 20px; border-radius: 10px; border: 1px solid #333;
+        }
+
+        /* === BOTTONI E INPUT === */
+        button {
+            background: transparent; border: 1px solid var(--primary); color: var(--text);
+            padding: 8px 15px; cursor: pointer; border-radius: 5px; transition: all 0.2s;
+            font-family: 'Orbitron', sans-serif; font-size: 0.7rem; text-transform: uppercase;
+        }
+        button:hover:not(:disabled) { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #555; }
+        
+        input, select {
+            background: #1a1a2e; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; 
+            width: 100%; box-sizing: border-box; margin-bottom: 10px; font-family: 'Orbitron', sans-serif;
+        }
+
+        /* === LISTE === */
+        .list-item {
+            background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; margin-bottom: 10px; 
+            border-left: 3px solid var(--primary); display: flex; justify-content: space-between; align-items: center;
+        }
+        .item-info { font-size: 0.8rem; }
+        .item-actions { display: flex; gap: 5px; }
+        .habit-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        
+        .btn-done { border-color: var(--success); color: var(--success); }
+        .btn-fail { border-color: var(--danger); color: var(--danger); }
+        .btn-freeze { border-color: var(--secondary); color: var(--secondary); }
+        .btn-reset { border-color: var(--danger); color: var(--danger); font-size: 0.6rem; padding: 5px 10px; }
+        
+        .chart-container-small { height: 60px; width: 100%; margin-top: 10px; }
+        .radar-container { width: 100%; max-width: 300px; margin: 0 auto; }
+
+        /* === MINI GIOCO === */
+        .arena { text-align: center; background: #000; border: 2px solid var(--danger); padding: 20px; position: relative; height: 350px;}
+        .combatants { display: flex; justify-content: space-around; margin: 30px 0; align-items: flex-end; }
+        .sprite { font-size: 3.5rem; display: inline-block; }
+        .hp-bar-bg { width: 100%; background: #333; height: 10px; border-radius: 5px; margin-top: 5px; }
+        .hp-bar-fill { height: 100%; background: var(--danger); border-radius: 5px; transition: width 0.3s; }
+        .attacks { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .log { height: 80px; overflow-y: auto; font-size: 0.7rem; text-align: left; background: #111; padding: 5px; margin-top: 15px; border-left: 2px solid var(--secondary);}
+        
+        /* Animazioni Attacco */
+        @keyframes animLight { 0% { transform: translateX(0); } 50% { transform: translateX(40px); } 100% { transform: translateX(0); } }
+        @keyframes animHeavy { 0% { transform: translateX(0) scale(1); } 30% { transform: translateX(-20px) scale(1.2); } 70% { transform: translateX(50px) scale(1.3); } 100% { transform: translateX(0) scale(1); } }
+        @keyframes animMagic { 0% { transform: translateY(0); filter: drop-shadow(0 0 0 var(--secondary)); } 50% { transform: translateY(-30px) scale(1.1); filter: drop-shadow(0 0 20px var(--secondary)); } 100% { transform: translateY(0); filter: drop-shadow(0 0 0 var(--secondary)); } }
+        .anim-light { animation: animLight 0.3s ease; }
+        .anim-heavy { animation: animHeavy 0.5s ease-in; }
+        .anim-magic { animation: animMagic 0.6s ease-in-out; }
+        .hurt-anim { filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5); transform: translateX(-10px); }
+        .boss-glow { text-shadow: 0 0 20px var(--danger); font-size: 4.5rem; }
+    </style>
+</head>
+<body>
+    <div class="waves"></div>
+
+    <div class="header">
+        <h1>SYSTEM ALERT</h1>
+        <div class="status-bar">
+            <div>LV: <span id="player-lvl" style="color: var(--secondary)">1</span></div>
+            <div>EXP: <span id="player-exp">0</span>/<span id="player-exp-need">10</span></div>
+            <div>DENARI: <span id="player-gold" style="color: var(--gold)">0</span> 🪙</div>
+            <div>HP: <span id="header-hp" style="color: var(--success)">100</span></div>
+        </div>
+    </div>
+
+    <!-- AREA SCORREVOLE -->
+    <div class="viewport">
+        <div class="track" id="track">
+            
+            <!-- SEZIONE 1: STATS E NEGOZIO -->
+            <div class="slide">
+                <div class="panel">
+                    <h2>Statistiche <button class="btn-reset" onclick="resetGame()" style="float:right;">Resetta Dati</button></h2>
+                    <div class="radar-container"><canvas id="radarChart"></canvas></div>
+                </div>
+                <div class="panel" style="margin-top: 15px;">
+                    <h2>Negozio di Sistema <button onclick="manualShopRefresh()" style="float:right; font-size:0.6rem;">Aggiorna</button></h2>
+                    <p style="font-size:0.6rem; color:#888;">Gli oggetti scalano col tuo Livello.</p>
+                    <div id="shop-list"></div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 2: ABITUDINI -->
+            <div class="slide">
+                <div class="panel">
+                    <h2>Quest Giornaliere</h2>
+                    <div style="margin-bottom: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
+                        <input type="text" id="hab-name" placeholder="Nome Abitudine...">
+                        <div style="display:flex; gap:10px;">
+                            <select id="hab-diff">
+                                <option value="facile">Facile (2XP|10🪙)</option>
+                                <option value="media">Media (4XP|20🪙)</option>
+                                <option value="difficile">Difficile (6XP|40🪙)</option>
+                            </select>
+                            <select id="hab-cat">
+                                <option value="str">Forza</option><option value="int">Intelligenza</option><option value="art">Arte</option>
+                            </select>
+                        </div>
+                        <button onclick="addHabit()" style="width: 100%;">Registra Abitudine</button>
+                    </div>
+                    <div id="habits-list"></div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 3: COMBATTIMENTO -->
+            <div class="slide">
+                <div class="panel">
+                    <h2>Dungeon</h2>
+                    <div class="arena">
+                        <div class="combatants">
+                            <!-- Player -->
+                            <div style="width: 40%;">
+                                <div id="player-sprite" class="sprite">🧍‍♂️</div>
+                                <div style="font-size: 0.8rem;">Tu <span id="player-wpn-icon"></span></div>
+                                <div class="hp-bar-bg"><div id="pl-hp" class="hp-bar-fill" style="background: var(--success);"></div></div>
+                            </div>
+                            <div style="font-size: 1.5rem; color: var(--danger)">VS</div>
+                            <!-- Enemy -->
+                            <div style="width: 40%;">
+                                <div id="enemy-sprite" class="sprite">👺</div>
+                                <div id="enemy-name" style="color: var(--danger); font-size:0.8rem;">Goblin</div>
+                                <div class="hp-bar-bg"><div id="en-hp" class="hp-bar-fill"></div></div>
+                            </div>
+                        </div>
+                        <div class="attacks">
+                            <button onclick="attack('light')">Attacco Base</button>
+                            <button onclick="attack('heavy')" style="border-color: orange;">Colpo Forte</button>
+                            <button onclick="attack('magic')" style="border-color: var(--secondary);">Magia</button>
+                        </div>
+                        <div id="combat-log" class="log">Sistema inizializzato. Ingresso nel Dungeon...<br></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 4: INVENTARIO -->
+            <div class="slide">
+                <div class="panel">
+                    <h2>Inventario Personale</h2>
+                    <p style="font-size:0.7rem; color:#888;">Equipaggiamento Attuale:</p>
+                    <div style="background:#111; padding:10px; border:1px solid #333; margin-bottom:15px; font-size:0.8rem;">
+                        🗡️ Arma: <span id="eq-weapon" style="color:var(--secondary)">Nessuna</span><br>
+                        🛡️ Armatura: <span id="eq-armor" style="color:var(--secondary)">Nessuna</span>
+                    </div>
+                    <p style="font-size:0.7rem; color:#888;">Zaino:</p>
+                    <div id="inventory-list"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CONTROLLI PAGINAZIONE -->
+    <div class="nav-controls">
+        <button onclick="changeSlide(-1)">&#9664; Indietro</button>
+        <span id="slide-indicator" style="font-size:0.8rem; color:var(--secondary); text-align: center;">1. STATS & SHOP</span>
+        <button onclick="changeSlide(1)">Avanti &#9654;</button>
+    </div>
+
+    <script>
+        // === VARIABILI GLOBALI ===
+        let player = {
+            level: 1, exp: 0, expNeeded: 10, gold: 50,
+            stats: { str: 5, int: 5, art: 5 },
+            hp: 100, maxHp: 100,
+            equippedWeapon: null, equippedArmor: null,
+            inventory: []
+        };
+        let habits = []; let habitCharts = {};
+        let shopItems = [];
+        let bossCounter = 0; 
+        let enemy = { name: "Goblin", hp: 30, maxHp: 30, sprite: "👺", power: 3, isBoss: false };
+        let currentSlide = 0; const slideNames = ["1. STATS & SHOP", "2. ABITUDINI", "3. DUNGEON", "4. INVENTARIO"];
+
+        const enemySprites = ["👺", "🐺", "🧟", "🧛"];
+        const bossSprite = "🐉";
+
+        // === SISTEMA DI SALVATAGGIO (LOCALSTORAGE) ===
+        function saveGame() {
+            const dataToSave = { player, habits, shopItems, bossCounter, enemy };
+            localStorage.setItem('soloLevelingSave', JSON.stringify(dataToSave));
+        }
+
+        function loadGame() {
+            const savedData = localStorage.getItem('soloLevelingSave');
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    player = parsed.player;
+                    habits = parsed.habits || [];
+                    shopItems = parsed.shopItems || [];
+                    bossCounter = parsed.bossCounter || 0;
+                    if(parsed.enemy) enemy = parsed.enemy;
+                } catch (e) {
+                    console.error("Errore caricamento dati.", e);
+                }
+            } else {
+                generateShop();
+                updateEnemy();
+            }
+            
+            // Ripristina l'estetica se hai armature equipaggiate
+            if(player.equippedArmor) document.getElementById('player-sprite').innerText = "🥷";
+            if(player.equippedWeapon) document.getElementById('player-wpn-icon').innerText = player.equippedWeapon.icon;
+            if(enemy.isBoss) document.getElementById('enemy-sprite').classList.add('boss-glow');
+        }
+
+        function resetGame() {
+            if(confirm("Sei sicuro di voler resettare tutti i tuoi progressi? Questa azione è irreversibile!")) {
+                localStorage.removeItem('soloLevelingSave');
+                location.reload(); // Ricarica la pagina da zero
+            }
+        }
+
+        // === GRAFICO RADAR ===
+        const ctxRadar = document.getElementById('radarChart').getContext('2d');
+        let radarChart = new Chart(ctxRadar, {
+            type: 'radar',
+            data: { labels: ['Forza', 'Intelligenza', 'Arte'], datasets: [{ data: [5,5,5], backgroundColor: 'rgba(138,43,226,0.2)', borderColor: '#8a2be2', pointBackgroundColor: '#00ffff', borderWidth: 2 }] },
+            options: { scales: { r: { angleLines:{color:'#333'}, grid:{color:'#333'}, pointLabels:{color:'#e2e8f0', font:{family:'Orbitron'}}, ticks:{display:false} } }, plugins: { legend: { display: false } } }
+        });
+
+        // === NAVIGAZIONE SLIDER ===
+        function changeSlide(dir) {
+            currentSlide += dir;
+            if(currentSlide < 0) currentSlide = 0;
+            if(currentSlide > 3) currentSlide = 3;
+            document.getElementById('track').style.transform = `translateX(-${currentSlide * 25}%)`;
+            document.getElementById('slide-indicator').innerText = slideNames[currentSlide];
+            
+            if(currentSlide === 0) radarChart.resize();
+            if(currentSlide === 1) renderHabits(); 
+        }
+
+        // === SISTEMA ABITUDINI ===
+        function addHabit() {
+            const name = document.getElementById('hab-name').value;
+            const diff = document.getElementById('hab-diff').value;
+            const cat = document.getElementById('hab-cat').value;
+            if(!name) return;
+            habits.push({ id: Date.now(), name, diff, cat, history: [] });
+            document.getElementById('hab-name').value = '';
+            renderHabits();
+            saveGame();
+        }
+
+        function handleHabit(id, isDone, isFrozen = false) {
+            const h = habits.find(x => x.id === id);
+            let xpR = h.diff === 'facile' ? 2 : h.diff === 'media' ? 4 : 6;
+            let goldR = h.diff === 'facile' ? 10 : h.diff === 'media' ? 20 : 40;
+
+            if(isFrozen) {
+                h.history.push(0.5); 
+                sysLog(`Abitudine '${h.name}' congelata.`);
+            } else if (isDone) {
+                player.exp += xpR; player.gold += goldR; player.stats[h.cat] += 1;
+                h.history.push(1);
+                sysLog(`+${xpR}XP, +${goldR}🪙 da ${h.name}.`);
+            } else {
+                player.gold = Math.max(0, player.gold - goldR);
+                h.history.push(0);
+                sysLog(`Fallito ${h.name}. Persi ${goldR}🪙.`);
+            }
+            if(h.history.length > 7) h.history.shift(); 
+            
+            checkLevelUp(); updateUI(); renderHabits();
+            saveGame(); // SALVATAGGIO
+        }
+
+        function useFreezePotion(habitId) {
+            let potIndex = player.inventory.findIndex(i => i.type === 'freeze');
+            if(potIndex > -1) {
+                player.inventory.splice(potIndex, 1); 
+                handleHabit(habitId, false, true);
+            }
+        }
+
+        function checkLevelUp() {
+            if (player.exp >= player.expNeeded) {
+                player.exp -= player.expNeeded; player.level++; player.expNeeded += 2;
+                player.maxHp += 10; player.hp = player.maxHp;
+                generateShop(); 
+                rewardLevelUp();
+                alert(`LEVEL UP! Sei al livello ${player.level}! Negozio aggiornato.`);
+            }
+        }
+
+        function rewardLevelUp() {
+            let r = Math.random();
+            if(r < 0.4) { player.gold += 100; sysLog("Ricompensa Lvl: 100🪙"); }
+            else if(r < 0.7) { player.inventory.push({ id: Date.now(), name: "Pozione Cura", type: "potion", icon: "🧪", power: player.level*20, cost: 20 }); sysLog("Ricompensa Lvl: Pozione"); }
+            else { player.inventory.push({ id: Date.now(), name: "Spada Lvl UP", type: "weapon", icon: "🗡️", power: player.level*5, cost: 50, scale:'str' }); sysLog("Ricompensa Lvl: Arma!"); }
+        }
+
+        function renderHabits() {
+            const list = document.getElementById('habits-list');
+            list.innerHTML = '';
+            let hasFreeze = player.inventory.some(i => i.type === 'freeze');
+
+            habits.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'list-item'; div.style.flexDirection = 'column'; div.style.alignItems = 'flex-start';
+                let freezeBtn = hasFreeze ? `<button class="btn-freeze" onclick="useFreezePotion(${h.id})">❄️ Congela</button>` : '';
+
+                div.innerHTML = `
+                    <div style="width:100%; display:flex; justify-content:space-between;">
+                        <strong>${h.name}</strong> <span style="font-size:0.6rem; color:#888;">${h.diff.toUpperCase()} | ${h.cat.toUpperCase()}</span>
+                    </div>
+                    <div class="habit-actions">
+                        <button class="btn-done" onclick="handleHabit(${h.id}, true)">Fatto</button>
+                        <button class="btn-fail" onclick="handleHabit(${h.id}, false)">Saltato</button>
+                        ${freezeBtn}
+                    </div>
+                    <div class="chart-container-small"><canvas id="chart-${h.id}"></canvas></div>
+                `;
+                list.appendChild(div);
+
+                const ctx = document.getElementById(`chart-${h.id}`).getContext('2d');
+                if (habitCharts[h.id]) habitCharts[h.id].destroy();
+                habitCharts[h.id] = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: h.history.map((_, i) => i), datasets: [{ data: h.history, borderColor: '#00ffff', tension: 0.3, borderWidth: 2, pointRadius: 1 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 1.2, display: false }, x: { display: false } }, plugins: { legend: { display: false } } }
+                });
+            });
+        }
+
+        // === SHOP E INVENTARIO ===
+        function generateShop() {
+            shopItems = [];
+            let lvl = player.level;
+            shopItems.push({ id: Date.now()+1, name: "Spada Lvl."+lvl, type: "weapon", icon: "⚔️", power: 5 + (lvl*3), cost: 30 + (lvl*15), scale: 'str' });
+            shopItems.push({ id: Date.now()+2, name: "Scettro Lvl."+lvl, type: "weapon", icon: "🪄", power: 5 + (lvl*3), cost: 40 + (lvl*15), scale: 'int' });
+            shopItems.push({ id: Date.now()+3, name: "Corazza Lvl."+lvl, type: "armor", icon: "🛡️", power: 15 + (lvl*10), cost: 50 + (lvl*20) });
+            shopItems.push({ id: Date.now()+4, name: "Pozione Minore", type: "potion", icon: "🧪", power: 30 + (lvl*5), cost: 20 + (lvl*5) });
+            renderShop();
+            saveGame();
+        }
+
+        function manualShopRefresh() {
+            generateShop();
+        }
+
+        function renderShop() {
+            const list = document.getElementById('shop-list');
+            list.innerHTML = '';
+            shopItems.forEach(item => {
+                let canBuy = player.gold >= item.cost;
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-info">${item.icon} ${item.name}<br><span style="color:#aaa;">Pwr/HP: +${item.power} | ${item.cost}🪙</span></div>
+                        <button onclick="buyItem(${item.id})" ${!canBuy ? 'disabled' : ''}>${canBuy ? 'Compra' : 'No Denaro'}</button>
+                    </div>`;
+            });
+        }
+
+        function buyItem(id) {
+            let idx = shopItems.findIndex(x => x.id === id);
+            let item = shopItems[idx];
+            if (player.gold >= item.cost) {
+                player.gold -= item.cost;
+                player.inventory.push({...item});
+                shopItems.splice(idx, 1);
+                sysLog(`Comprato ${item.name}.`);
+                updateUI();
+                saveGame(); // SALVATAGGIO
+            }
+        }
+
+        function renderInventory() {
+            document.getElementById('eq-weapon').innerText = player.equippedWeapon ? `${player.equippedWeapon.icon} ${player.equippedWeapon.name}` : "Nessuna";
+            document.getElementById('eq-armor').innerText = player.equippedArmor ? `${player.equippedArmor.icon} ${player.equippedArmor.name}` : "Nessuna";
+            
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = '';
+            if(player.inventory.length === 0) list.innerHTML = "<p style='font-size:0.7rem'>Zaino vuoto.</p>";
+
+            player.inventory.forEach((item, index) => {
+                let actionBtn = "";
+                if(item.type === 'weapon' || item.type === 'armor') actionBtn = `<button onclick="equipItem(${index})">Equip</button>`;
+                if(item.type === 'potion') actionBtn = `<button onclick="usePotion(${index})" style="border-color:var(--success)">Usa</button>`;
+                if(item.type === 'freeze') actionBtn = `<span style="font-size:0.6rem; color:var(--secondary)">Usa in Abitudini</span>`;
+
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-info">${item.icon} ${item.name} <span style="color:#aaa;">(Val: ${Math.floor(item.cost/2)}🪙)</span></div>
+                        <div class="item-actions">
+                            ${actionBtn}
+                            <button onclick="sellItem(${index})" style="border-color:var(--danger)">Vendi</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function equipItem(index) {
+            let item = player.inventory[index];
+            player.inventory.splice(index, 1);
+            
+            if(item.type === 'weapon') {
+                if(player.equippedWeapon) player.inventory.push(player.equippedWeapon);
+                player.equippedWeapon = item;
+                document.getElementById('player-wpn-icon').innerText = item.icon;
+            } else if(item.type === 'armor') {
+                if(player.equippedArmor) {
+                    player.inventory.push(player.equippedArmor);
+                    player.maxHp -= player.equippedArmor.power;
+                }
+                player.equippedArmor = item;
+                player.maxHp += item.power;
+                player.hp = player.maxHp;
+                document.getElementById('player-sprite').innerText = "🥷";
+            }
+            sysLog(`Equipaggiato ${item.name}.`);
+            updateUI();
+            saveGame(); // SALVATAGGIO
+        }
+
+        function sellItem(index) {
+            let item = player.inventory[index];
+            player.gold += Math.floor(item.cost / 2);
+            player.inventory.splice(index, 1);
+            updateUI();
+            saveGame(); // SALVATAGGIO
+        }
+
+        function usePotion(index) {
+            let item = player.inventory[index];
+            if(item.type === 'potion') {
+                player.hp = Math.min(player.maxHp, player.hp + item.power);
+                player.inventory.splice(index, 1);
+                sysLog(`Curati ${item.power} HP.`);
+                updateUI();
+                saveGame(); // SALVATAGGIO
+            }
+        }
+
+        // === COMBATTIMENTO ===
+        function updateEnemy() {
+            let eLvl = player.level;
+            enemy.isBoss = (bossCounter % 5 === 4);
+            
+            if(enemy.isBoss) {
+                enemy.name = "BOSS: Drago Reame"; enemy.sprite = bossSprite;
+                enemy.maxHp = 100 + (eLvl * 30); enemy.power = 10 + (eLvl * 5);
+                document.getElementById('enemy-sprite').classList.add('boss-glow');
+            } else {
+                enemy.name = "Mostro Liv." + eLvl; enemy.sprite = enemySprites[Math.floor(Math.random()*enemySprites.length)];
+                enemy.maxHp = 20 + (eLvl * 10); enemy.power = 3 + (eLvl * 2);
+                document.getElementById('enemy-sprite').classList.remove('boss-glow');
+            }
+            enemy.hp = enemy.maxHp;
+            document.getElementById('enemy-name').innerText = enemy.name;
+            document.getElementById('enemy-sprite').innerText = enemy.sprite;
+            updateHpBars();
+            saveGame(); // SALVA IL NUOVO NEMICO
+        }
+
+        function attack(type) {
+            if(enemy.hp <= 0 || player.hp <= 0) return;
+
+            const pSprite = document.getElementById('player-sprite');
+            pSprite.className = 'sprite'; void pSprite.offsetWidth; 
+            if(type==='light') pSprite.classList.add('anim-light');
+            if(type==='heavy') pSprite.classList.add('anim-heavy');
+            if(type==='magic') pSprite.classList.add('anim-magic');
+
+            let wpn = player.equippedWeapon;
+            let dmg = 1;
+            
+            if(type === 'light') dmg = (wpn && wpn.scale === 'str' ? wpn.power : 2) + player.stats.str;
+            else if(type === 'heavy') dmg = ((wpn && wpn.scale === 'str' ? wpn.power : 2) * 1.5) + (player.stats.str * 1.2) - 3;
+            else if(type === 'magic') dmg = (wpn && wpn.scale === 'int' ? wpn.power : 0) + (player.stats.int * 2);
+
+            dmg = Math.max(1, Math.floor(dmg));
+            enemy.hp -= dmg;
+            sysLog(`Usi ${type}! Danni: ${dmg}`);
+            
+            const eSprite = document.getElementById('enemy-sprite');
+            eSprite.classList.add('hurt-anim');
+            setTimeout(() => eSprite.classList.remove('hurt-anim'), 300);
+
+            if (enemy.hp <= 0) {
+                enemy.hp = 0; updateHpBars();
+                sysLog(`Ucciso ${enemy.name}!`);
+                bossCounter++;
+                
+                if(enemy.isBoss) {
+                    player.inventory.push({ id: Date.now(), name: "Pozione Riposo", type: "freeze", icon: "❄️", power: 0, cost: 100 });
+                    sysLog("DROP: POZIONE RIPOSO ❄️!");
+                }
+                
+                player.gold += enemy.isBoss ? 50 : 10;
+                updateUI();
+                saveGame();
+                setTimeout(updateEnemy, 1500);
+                return;
+            }
+            
+            updateHpBars();
+            saveGame();
+
+            // Turno Nemico
+            setTimeout(() => {
+                if(enemy.hp > 0) {
+                    let armorDef = player.equippedArmor ? (player.equippedArmor.power * 0.2) : 0;
+                    let eDmg = Math.max(1, Math.floor(enemy.power - armorDef));
+                    player.hp -= eDmg;
+                    sysLog(`Subiti ${eDmg} danni.`);
+                    
+                    pSprite.classList.add('hurt-anim');
+                    setTimeout(() => pSprite.classList.remove('hurt-anim'), 300);
+                    
+                    if(player.hp <= 0) { player.hp = 0; sysLog("SEI MORTO. Riposati/Curati per continuare."); }
+                    updateHpBars();
+                    saveGame(); // SALVA DOPO ATTACCO NEMICO
+                }
+            }, 800);
+        }
+
+        // === UTILITY ===
+        function sysLog(msg) {
+            const logBox = document.getElementById('combat-log');
+            logBox.innerHTML += `> ${msg}<br>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function updateUI() {
+            document.getElementById('player-lvl').innerText = player.level;
+            document.getElementById('player-exp').innerText = player.exp;
+            document.getElementById('player-exp-need').innerText = player.expNeeded;
+            document.getElementById('player-gold').innerText = player.gold;
+            document.getElementById('header-hp').innerText = player.hp;
+            
+            radarChart.data.datasets[0].data = [player.stats.str, player.stats.int, player.stats.art];
+            radarChart.update();
+            renderShop(); renderInventory(); renderHabits(); updateHpBars();
+            
+            document.getElementById('enemy-name').innerText = enemy.name;
+            document.getElementById('enemy-sprite').innerText = enemy.sprite;
+        }
+
+        function updateHpBars() {
+            if(document.getElementById('pl-hp')) document.getElementById('pl-hp').style.width = `${(player.hp / player.maxHp) * 100}%`;
+            if(document.getElementById('en-hp')) document.getElementById('en-hp').style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
+            document.getElementById('header-hp').innerText = player.hp;
+        }
+
+        // === INIZIALIZZAZIONE DEL SISTEMA ===
+        loadGame(); // CARICA I DATI SALVATI O GENERA IL GIOCO
+        updateUI(); // AGGIORNA LA GRAFICA COI DATI CARICATI
+    </script>
+</body>
+</html>
