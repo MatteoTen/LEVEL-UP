@@ -1,3 +1,6 @@
+html
+
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -6,7 +9,6 @@
 <title>Solo Tracker</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: #0a0a0f;
     color: #e0e0ff;
@@ -16,7 +18,6 @@
     flex-direction: column;
     align-items: center;
   }
-
   /* ── TOP BAR ── */
   .system-alert {
     width: 100%;
@@ -29,7 +30,6 @@
     color: #aaaaff;
   }
   .system-alert span { margin: 0 10px; }
-
   /* ── NAV ── */
   .nav {
     display: flex;
@@ -51,7 +51,6 @@
     font-size: 0.75rem;
   }
   .nav button:hover { border-color: #6666cc; color: #aaaaff; }
-
   /* ── MAIN CARD ── */
   .card {
     width: 100%;
@@ -69,8 +68,7 @@
     text-transform: uppercase;
     margin-bottom: 16px;
   }
-
-  /* ── STATS ── */
+  /* ── STATS HEADER ── */
   .stats-header {
     display: flex;
     justify-content: space-between;
@@ -88,36 +86,13 @@
     font-size: 0.7rem;
   }
   .reset-btn:hover { border-color: #aa44aa; color: #ffaaff; }
-
-  /* ── RADAR CHART ── */
+  /* ── RADAR WRAP ── */
   .radar-wrap {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    margin: 8px 0 20px;
+    margin: 8px 0 24px;
   }
-
-  .radar-labels {
-    position: relative;
-    width: 260px;
-    height: 260px;
-  }
-
-  .radar-labels svg {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    overflow: visible;
-  }
-
-  .axis-label {
-    position: absolute;
-    font-size: 0.72rem;
-    color: #8888cc;
-    white-space: nowrap;
-    transform: translate(-50%, -50%);
-  }
-
   /* ── STAT BARS ── */
   .stat-row {
     display: flex;
@@ -126,7 +101,7 @@
     gap: 10px;
   }
   .stat-name {
-    width: 100px;
+    width: 110px;
     font-size: 0.78rem;
     color: #8888cc;
   }
@@ -140,7 +115,6 @@
   .bar-fill {
     height: 100%;
     border-radius: 3px;
-    background: linear-gradient(90deg, #4444cc, #8888ff);
     transition: width 0.4s;
   }
   .stat-val {
@@ -149,7 +123,6 @@
     font-size: 0.78rem;
     color: #6666aa;
   }
-
   /* ── SHOP ── */
   .shop-header {
     display: flex;
@@ -168,7 +141,6 @@
     font-size: 0.7rem;
   }
   .refresh-btn:hover { border-color: #44aa44; color: #aaffaa; }
-
   .shop-item {
     display: flex;
     justify-content: space-between;
@@ -194,41 +166,37 @@
 </style>
 </head>
 <body>
-
-<!-- TOP BAR -->
+<!-- ── TOP BAR ── -->
 <div class="system-alert">
   ☆ <span>LV: 1</span>
   <span>⚡ EXP: 0 / 10</span>
   <span>🪙 50</span>
   <span>💚 100</span>
 </div>
-
-<!-- NAV -->
+<!-- ── NAV ── -->
 <div class="nav">
   <button>← INDIETRO</button>
   <span>1. STATS &amp; SHOP</span>
   <button>AVANTI →</button>
 </div>
-
-<!-- STATS CARD -->
+<!-- ── STATS CARD ── -->
 <div class="card">
   <div class="stats-header">
     <h2>Statistiche</h2>
     <button class="reset-btn">RESETTA</button>
   </div>
-
-  <!-- RADAR -->
+  <!-- RADAR SVG: il viewBox è sovradimensionato per dare spazio alle label esterne -->
   <div class="radar-wrap">
-    <div class="radar-labels" id="radarContainer">
-      <svg id="radarSvg" viewBox="0 0 260 260"></svg>
-    </div>
+    <svg id="radarSvg"
+         width="300" height="300"
+         viewBox="0 0 300 300"
+         xmlns="[w3.org](http://www.w3.org/2000/svg)">
+    </svg>
   </div>
-
-  <!-- BARS -->
+  <!-- BARRE STAT -->
   <div id="statBars"></div>
 </div>
-
-<!-- SHOP CARD -->
+<!-- ── SHOP CARD ── -->
 <div class="card">
   <div class="shop-header">
     <h2>Negozio di Sistema</h2>
@@ -252,141 +220,157 @@
     </div>
   </div>
 </div>
-
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// CONFIGURAZIONE
+// ─────────────────────────────────────────────
 const STATS = [
-  { name: 'FORZA',        value: 30, color: '#ff6666' },
-  { name: 'INTELLIGENZA', value: 60, color: '#6699ff' },
-  { name: 'ARTE',         value: 45, color: '#cc66ff' },
+  { name: 'FORZA',        icon: '⚔️',  value: 30, color: '#ff6666' },
+  { name: 'INTELLIGENZA', icon: '📖',  value: 60, color: '#6699ff' },
+  { name: 'ARTE',         icon: '🎨',  value: 45, color: '#cc66ff' },
 ];
 const MAX_VAL = 100;
-
-// ── RADAR ────────────────────────────────────────────────────────────────────
-// SVG viewBox is 260×260; centre = (130,130)
-// We use a slightly smaller radius so labels fit inside the container.
-const CX = 130, CY = 130;
-const R_GRID  = 90;   // max grid radius
-const R_LABEL = 112;  // label anchor radius (beyond grid)
-const AXES    = STATS.length; // 3
-
-/**
- * Return (x, y) for axis i of n, starting straight UP (−90°),
- * going clockwise. This gives:
- *   i=0 → top (FORZA)
- *   i=1 → bottom-right (INTELLIGENZA)
- *   i=2 → bottom-left (ARTE)
- */
-function axisPoint(i, n, r) {
-  const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+// Centro e raggi del grafico (coordinate SVG, viewBox 300×300)
+const CX = 150;
+const CY = 150;
+const R_GRID  = 85;   // raggio massimo del grid
+const R_DOT   = 20;   // distanza extra per i puntini sui vertici del grid
+const R_LABEL = 118;  // raggio per il centro dell'icona+testo (fuori dal grid)
+// ─────────────────────────────────────────────
+// UTILITY: coordinate di un vertice del poligono
+// Il primo asse punta verso l'ALTO (−90°), poi
+// procede in senso orario.
+// ─────────────────────────────────────────────
+function vertex(index, total, radius) {
+  const angle = (2 * Math.PI * index) / total - Math.PI / 2;
   return {
-    x: CX + r * Math.cos(angle),
-    y: CY + r * Math.sin(angle),
+    x: CX + radius * Math.cos(angle),
+    y: CY + radius * Math.sin(angle),
   };
 }
-
+// ─────────────────────────────────────────────
+// COSTRUZIONE RADAR
+// ─────────────────────────────────────────────
 function buildRadar() {
   const svg = document.getElementById('radarSvg');
-  svg.innerHTML = '';
-
-  const ns = '[w3.org](http://www.w3.org/2000/svg)';
-
-  // ── grid rings (3 levels) ──
-  [0.33, 0.66, 1].forEach(t => {
+  const NS  = '[w3.org](http://www.w3.org/2000/svg)';
+  const N   = STATS.length; // 3 assi
+  function el(tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    return e;
+  }
+  // ── 1. Anelli del grid (3 livelli) ──────────────────────────────────────
+  [1/3, 2/3, 1].forEach(t => {
     const pts = STATS.map((_, i) => {
-      const p = axisPoint(i, AXES, R_GRID * t);
+      const p = vertex(i, N, R_GRID * t);
       return `${p.x},${p.y}`;
     }).join(' ');
-
-    const poly = document.createElementNS(ns, 'polygon');
-    poly.setAttribute('points', pts);
-    poly.setAttribute('fill', 'none');
-    poly.setAttribute('stroke', '#222244');
-    poly.setAttribute('stroke-width', '1');
-    svg.appendChild(poly);
+    svg.appendChild(el('polygon', {
+      points: pts,
+      fill: 'none',
+      stroke: '#222255',
+      'stroke-width': '1',
+    }));
   });
-
-  // ── axis lines ──
+  // ── 2. Linee degli assi (centro → vertice) ──────────────────────────────
   STATS.forEach((_, i) => {
-    const p = axisPoint(i, AXES, R_GRID);
-    const line = document.createElementNS(ns, 'line');
-    line.setAttribute('x1', CX); line.setAttribute('y1', CY);
-    line.setAttribute('x2', p.x); line.setAttribute('y2', p.y);
-    line.setAttribute('stroke', '#222244');
-    line.setAttribute('stroke-width', '1');
-    svg.appendChild(line);
+    const p = vertex(i, N, R_GRID);
+    svg.appendChild(el('line', {
+      x1: CX, y1: CY, x2: p.x, y2: p.y,
+      stroke: '#222255',
+      'stroke-width': '1',
+    }));
   });
-
-  // ── data polygon ──
+  // ── 3. Poligono dei dati ─────────────────────────────────────────────────
   const dataPts = STATS.map((s, i) => {
     const r = (s.value / MAX_VAL) * R_GRID;
-    const p = axisPoint(i, AXES, r);
+    const p = vertex(i, N, r);
     return `${p.x},${p.y}`;
   }).join(' ');
-
-  const dataPoly = document.createElementNS(ns, 'polygon');
-  dataPoly.setAttribute('points', dataPts);
-  dataPoly.setAttribute('fill', 'rgba(100,100,255,0.18)');
-  dataPoly.setAttribute('stroke', '#6666ff');
-  dataPoly.setAttribute('stroke-width', '2');
-  svg.appendChild(dataPoly);
-
-  // ── data dots ──
+  svg.appendChild(el('polygon', {
+    points: dataPts,
+    fill: 'rgba(100,100,255,0.18)',
+    stroke: '#6666ff',
+    'stroke-width': '2',
+  }));
+  // ── 4. Pallini sui vertici del grid ─────────────────────────────────────
+  STATS.forEach((_, i) => {
+    const p = vertex(i, N, R_GRID);
+    svg.appendChild(el('circle', {
+      cx: p.x, cy: p.y, r: '3',
+      fill: '#444488',
+    }));
+  });
+  // ── 5. Pallini sui valori ────────────────────────────────────────────────
   STATS.forEach((s, i) => {
     const r = (s.value / MAX_VAL) * R_GRID;
-    const p = axisPoint(i, AXES, r);
-    const circle = document.createElementNS(ns, 'circle');
-    circle.setAttribute('cx', p.x);
-    circle.setAttribute('cy', p.y);
-    circle.setAttribute('r', '4');
-    circle.setAttribute('fill', s.color);
-    svg.appendChild(circle);
+    const p = vertex(i, N, r);
+    svg.appendChild(el('circle', {
+      cx: p.x, cy: p.y, r: '4',
+      fill: s.color,
+    }));
   });
-
-  // ── axis tip dots ──
-  STATS.forEach((_, i) => {
-    const p = axisPoint(i, AXES, R_GRID);
-    const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('cx', p.x);
-    dot.setAttribute('cy', p.y);
-    dot.setAttribute('r', '3');
-    dot.setAttribute('fill', '#444488');
-    svg.appendChild(dot);
-  });
-
-  // ── labels (SVG text so they share the same coordinate system) ──
+  // ── 6. Icone + nomi CENTRATI sull'angolo esterno ─────────────────────────
+  //
+  // Strategia: ogni label è un <g> con:
+  //   • un <text> per l'emoji (icona)  → dy = -8  (sopra il centro)
+  //   • un <text> per il nome stat     → dy = +10 (sotto il centro)
+  // Il <g> è traslato esattamente sul punto vertex(i, N, R_LABEL),
+  // che coincide con la proiezione dell'angolo verso l'esterno.
+  // text-anchor="middle" + dominant-baseline="middle" garantiscono
+  // la centratura sia orizzontale sia verticale rispetto al punto.
+  //
   STATS.forEach((s, i) => {
-    const p = axisPoint(i, AXES, R_LABEL);
-    const text = document.createElementNS(ns, 'text');
-    text.setAttribute('x', p.x);
-    text.setAttribute('y', p.y);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', '#8888cc');
-    text.setAttribute('font-size', '11');
-    text.setAttribute('font-family', 'Segoe UI, sans-serif');
-    text.textContent = s.name;
-    svg.appendChild(text);
+    const p = vertex(i, N, R_LABEL);
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+    // Icona emoji
+    const iconText = document.createElementNS(NS, 'text');
+    iconText.setAttribute('text-anchor', 'middle');
+    iconText.setAttribute('dominant-baseline', 'middle');
+    iconText.setAttribute('dy', '-9');
+    iconText.setAttribute('font-size', '16');
+    iconText.textContent = s.icon;
+    // Nome statistica
+    const nameText = document.createElementNS(NS, 'text');
+    nameText.setAttribute('text-anchor', 'middle');
+    nameText.setAttribute('dominant-baseline', 'middle');
+    nameText.setAttribute('dy', '9');
+    nameText.setAttribute('font-size', '10');
+    nameText.setAttribute('fill', '#8888cc');
+    nameText.setAttribute('font-family', 'Segoe UI, sans-serif');
+    nameText.setAttribute('letter-spacing', '0.08em');
+    nameText.textContent = s.name;
+    g.appendChild(iconText);
+    g.appendChild(nameText);
+    svg.appendChild(g);
   });
 }
-
-// ── BARS ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// BARRE DELLE STATISTICHE
+// ─────────────────────────────────────────────
 function buildBars() {
   const container = document.getElementById('statBars');
   container.innerHTML = '';
   STATS.forEach(s => {
-    container.innerHTML += `
-      <div class="stat-row">
-        <span class="stat-name">${s.name}</span>
-        <div class="bar-bg">
-          <div class="bar-fill" style="width:${s.value}%; background: linear-gradient(90deg, ${s.color}88, ${s.color});"></div>
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-name">${s.icon} ${s.name}</span>
+      <div class="bar-bg">
+        <div class="bar-fill"
+             style="width:${s.value}%;
+                    background: linear-gradient(90deg, ${s.color}66, ${s.color});">
         </div>
-        <span class="stat-val">${s.value}</span>
-      </div>`;
+      </div>
+      <span class="stat-val">${s.value}</span>`;
+    container.appendChild(row);
   });
 }
-
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
 buildRadar();
 buildBars();
 </script>
