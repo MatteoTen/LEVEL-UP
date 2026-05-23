@@ -118,13 +118,13 @@
             gap: 2px;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 10; /* Le mantiene sopra il canvas */
+            z-index: 10; /* Le posiziona visivamente sopra il canvas */
         }
         .radar-icon-circle {
             width: 30px; height: 30px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             border: 2px solid; font-size: 1rem;
-            background-color: var(--bg-color); /* Per coprire eventuali linee sottostanti */
+            background-color: var(--bg-color); /* Nasconde le linee sottostanti in caso di sovrapposizione */
         }
         .radar-icon-circle.str { border-color: var(--str-color); background: rgba(239,68,68,0.25); color: var(--str-color); }
         .radar-icon-circle.int { border-color: var(--int-color); background: rgba(0,255,255,0.20); color: var(--int-color); }
@@ -378,32 +378,35 @@
     // POSIZIONAMENTO ICONE SUGLI ANGOLI DEL RADAR
     // =============================================
     function positionRadarIcons() {
-        const chart   = radarChart;
-        const canvas  = document.getElementById('radarChart');
-        if (!chart || !canvas) return;
+        const chart = radarChart;
+        // Interrompiamo se il grafico non è ancora pronto o se mancano le scale
+        if (!chart || !chart.scales.r) return;
 
-        const scale   = chart.scales.r;
-        const cx      = scale.xCenter;
-        const cy      = scale.yCenter;
+        const scale = chart.scales.r;
         
-        // Aggiungiamo 28px di offset al raggio per spingere le icone verso l'esterno dei vertici
-        const radius  = scale.drawingArea + 28;
+        // Usiamo il valore massimo attuale della scala per trovare l'anello più esterno
+        const maxVal = scale.max || 5; 
 
-        // Angoli dei 3 punti: partono da -90° (top), poi +120°
+        const ids = ['node-str','node-int','node-art'];
+        
+        // Quanti pixel fuori dal vertice spingere l'icona
+        const offset = 22; 
+        
+        // Angoli in radianti per i 3 vertici base del triangolo di Chart.js
+        // 0=Forza(Top, -90°), 1=Intelligenza(Bottom-Right, 30°), 2=Arte(Bottom-Left, 150°)
         const angles = [-90, 30, 150].map(deg => deg * Math.PI / 180);
-
-        // Otteniamo la dimensione fisica reale sul DOM rispetto a quella di rendering interno del Canvas (es. schermi Retina)
-        const rect = canvas.getBoundingClientRect();
-        const ratioX = rect.width / canvas.width;
-        const ratioY = rect.height / canvas.height;
-
-        const ids   = ['node-str','node-int','node-art'];
 
         ids.forEach((id, i) => {
             const el = document.getElementById(id);
             if (!el) return;
-            const px = (cx + Math.cos(angles[i]) * radius) * ratioX;
-            const py = (cy + Math.sin(angles[i]) * radius) * ratioY;
+
+            // API nativa di Chart.js: restituisce dinamicamente le coordinate x,y in Pixel CSS per un dato valore
+            const point = scale.getPointPositionForValue(i, maxVal);
+
+            // Applichiamo la matematica radiale: spingiamo dal punto 'point' verso l'esterno
+            const px = point.x + Math.cos(angles[i]) * offset;
+            const py = point.y + Math.sin(angles[i]) * offset;
+
             el.style.left = px + 'px';
             el.style.top  = py + 'px';
         });
@@ -428,8 +431,8 @@
         },
         options: {
             layout: {
-                // Aggiunto del padding interno al grafico per fare spazio alle icone esterne senza tagliarle
-                padding: 30
+                // IMPORTANTISSIMO: crea lo spazio necessario dentro il canvas per ospitare le icone sfalsate
+                padding: 40 
             },
             animation: {
                 onComplete: positionRadarIcons,
@@ -439,7 +442,7 @@
                 r: {
                     angleLines:  { color:'#333' },
                     grid:        { color:'#333' },
-                    pointLabels: { display: false },   // nascondiamo le label di Chart.js
+                    pointLabels: { display: false },   // nascondiamo le label testuali di Chart.js
                     ticks:       { display: false },
                     suggestedMin: 0
                 }
@@ -448,11 +451,11 @@
         }
     });
 
-    // Riposiziona dopo resize
+    // Riposiziona al ridimensionamento della finestra per reattività impeccabile
     window.addEventListener('resize', () => { setTimeout(positionRadarIcons, 100); });
 
     // =============================================
-    // SALVATAGGIO
+    // SALVATAGGIO E RESTORE
     // =============================================
     function saveGame() {
         localStorage.setItem('soloLevelingSave', JSON.stringify({player, habits:habitsArray, shopItems, bossCounter, enemy}));
@@ -740,7 +743,7 @@
     // =============================================
     loadGame();
     updateUI();
-    // Posiziona dopo che la pagina è completamente renderizzata
+    // Posiziona le icone dopo il render finale del canvas
     setTimeout(positionRadarIcons, 300);
 </script>
 </body>
