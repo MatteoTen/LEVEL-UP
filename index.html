@@ -1,750 +1,394 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solo Tracker: Level Up</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #050508;
-            --panel-bg: rgba(15, 15, 25, 0.85);
-            --primary: #8a2be2;
-            --primary-glow: #a855f7;
-            --secondary: #00ffff;
-            --text: #e2e8f0;
-            --danger: #ef4444;
-            --success: #10b981;
-            --gold: #ffd700;
-            --str-color: #ef4444;
-            --int-color: #00ffff;
-            --art-color: #a855f7;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solo Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            margin: 0; padding: 20px; font-family: 'Orbitron', sans-serif;
-            background-color: var(--bg-color); color: var(--text);
-            overflow-x: hidden; position: relative; height: 100vh; display: flex; flex-direction: column;
-            box-sizing: border-box;
-        }
+  body {
+    background: #0a0a0f;
+    color: #e0e0ff;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
-        .waves {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background:
-                repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(138,43,226,0.05) 10px, rgba(138,43,226,0.05) 11px),
-                repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(0,255,255,0.03) 100px, rgba(0,255,255,0.03) 101px);
-            background-size: 100% 200%;
-            animation: moveLines 15s linear infinite;
-            z-index: -1; pointer-events: none;
-        }
-        @keyframes moveLines {
-            0%  { background-position: 0% 0%; }
-            100%{ background-position: 0% 100%; }
-        }
+  /* ── TOP BAR ── */
+  .system-alert {
+    width: 100%;
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
+    border-bottom: 1px solid #4444aa;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    color: #aaaaff;
+  }
+  .system-alert span { margin: 0 10px; }
 
-        .header {
-            text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 10px;
-            text-shadow: 0 0 10px var(--primary); flex-shrink: 0;
-        }
-        .status-bar { display: flex; justify-content: center; gap: 15px; font-size: 0.9rem; font-weight: bold; flex-wrap: wrap; }
-        .status-bar .stat-item { display: flex; align-items: center; gap: 5px; }
+  /* ── NAV ── */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 480px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    color: #6666cc;
+  }
+  .nav button {
+    background: none;
+    border: 1px solid #333366;
+    color: #8888cc;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+  .nav button:hover { border-color: #6666cc; color: #aaaaff; }
 
-        .viewport { flex-grow: 1; overflow: hidden; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; }
-        .track { display: flex; height: 100%; width: 400%; transition: transform 0.5s cubic-bezier(0.25,1,0.5,1); }
-        .slide { width: 25%; height: 100%; padding: 10px; box-sizing: border-box; overflow-y: auto; }
+  /* ── MAIN CARD ── */
+  .card {
+    width: 100%;
+    max-width: 480px;
+    background: #0e0e1a;
+    border: 1px solid #222244;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 8px 16px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: #5555aa;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
 
-        .panel {
-            background: var(--panel-bg); border: 1px solid var(--primary); border-radius: 10px;
-            padding: 15px; box-shadow: 0 0 15px rgba(138,43,226,0.2); backdrop-filter: blur(5px);
-            min-height: 90%;
-        }
-        .panel h2 {
-            margin-top: 0; color: var(--secondary); border-bottom: 1px solid #333; padding-bottom: 5px;
-            font-size: 1.2rem; display: flex; align-items: center; gap: 8px;
-        }
+  /* ── STATS ── */
+  .stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .stats-header h2 { margin: 0; }
+  .reset-btn {
+    background: none;
+    border: 1px solid #442244;
+    color: #aa66aa;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+  }
+  .reset-btn:hover { border-color: #aa44aa; color: #ffaaff; }
 
-        .nav-controls {
-            display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 10px auto 0;
-            background: #111; padding: 10px 20px; border-radius: 10px; border: 1px solid #333;
-        }
+  /* ── RADAR CHART ── */
+  .radar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 8px 0 20px;
+  }
 
-        button {
-            background: transparent; border: 1px solid var(--primary); color: var(--text);
-            padding: 8px 15px; cursor: pointer; border-radius: 5px; transition: all 0.2s;
-            font-family: 'Orbitron', sans-serif; font-size: 0.7rem; text-transform: uppercase;
-            display: inline-flex; align-items: center; gap: 5px;
-        }
-        button:hover:not(:disabled) { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #555; }
+  .radar-labels {
+    position: relative;
+    width: 260px;
+    height: 260px;
+  }
 
-        input, select {
-            background: #1a1a2e; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px;
-            width: 100%; box-sizing: border-box; margin-bottom: 10px; font-family: 'Orbitron', sans-serif;
-        }
+  .radar-labels svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    overflow: visible;
+  }
 
-        .list-item {
-            background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; margin-bottom: 10px;
-            border-left: 3px solid var(--primary); display: flex; justify-content: space-between; align-items: center;
-        }
-        .item-info { font-size: 0.8rem; }
-        .item-actions { display: flex; gap: 5px; }
-        .habit-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+  .axis-label {
+    position: absolute;
+    font-size: 0.72rem;
+    color: #8888cc;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+  }
 
-        .btn-done   { border-color: var(--success);   color: var(--success); }
-        .btn-fail   { border-color: var(--danger);     color: var(--danger); }
-        .btn-freeze { border-color: var(--secondary);  color: var(--secondary); }
-        .btn-reset  { border-color: var(--danger); color: var(--danger); font-size: 0.6rem; padding: 5px 10px; }
+  /* ── STAT BARS ── */
+  .stat-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .stat-name {
+    width: 100px;
+    font-size: 0.78rem;
+    color: #8888cc;
+  }
+  .bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #1a1a30;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4444cc, #8888ff);
+    transition: width 0.4s;
+  }
+  .stat-val {
+    width: 30px;
+    text-align: right;
+    font-size: 0.78rem;
+    color: #6666aa;
+  }
 
-        .chart-container-small { height: 60px; width: 100%; margin-top: 10px; }
+  /* ── SHOP ── */
+  .shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .shop-header h2 { margin: 0; }
+  .refresh-btn {
+    background: none;
+    border: 1px solid #224422;
+    color: #66aa66;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+  }
+  .refresh-btn:hover { border-color: #44aa44; color: #aaffaa; }
 
-        /* === RADAR WRAPPER === */
-        .radar-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
-        }
-        /* Canvas occupa tutto il wrapper */
-        .radar-wrapper canvas { display: block; width: 100% !important; }
-
-        /* Icone posizionate agli angoli — coordinate settate via JS */
-        .radar-icon-node {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 10; /* Le posiziona visivamente sopra il canvas */
-        }
-        .radar-icon-circle {
-            width: 30px; height: 30px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid; font-size: 1rem;
-            background-color: var(--bg-color); /* Nasconde le linee sottostanti in caso di sovrapposizione */
-        }
-        .radar-icon-circle.str { border-color: var(--str-color); background: rgba(239,68,68,0.25); color: var(--str-color); }
-        .radar-icon-circle.int { border-color: var(--int-color); background: rgba(0,255,255,0.20); color: var(--int-color); }
-        .radar-icon-circle.art { border-color: var(--art-color); background: rgba(168,85,247,0.25); color: var(--art-color); }
-
-        /* Legenda sotto il radar */
-        .radar-legend {
-            display: flex; justify-content: center; gap: 20px; margin-top: 10px;
-        }
-        .radar-legend-item {
-            display: flex; align-items: center; gap: 5px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
-        }
-        .radar-legend-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-        }
-        .radar-legend-item.str .radar-legend-dot { background: var(--str-color); }
-        .radar-legend-item.int .radar-legend-dot { background: var(--int-color); }
-        .radar-legend-item.art .radar-legend-dot { background: var(--art-color); }
-        .radar-legend-item.str { color: var(--str-color); }
-        .radar-legend-item.int { color: var(--int-color); }
-        .radar-legend-item.art { color: var(--art-color); }
-
-        /* === ARENA === */
-        .arena {
-            text-align: center; background: #000; border: 2px solid var(--danger);
-            padding: 20px; position: relative; height: 350px;
-        }
-        .combatants { display: flex; justify-content: space-around; margin: 20px 0; align-items: flex-end; }
-        .sprite-box { display: flex; flex-direction: column; align-items: center; }
-        .combat-sprite {
-            width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; border: 2px solid; font-size: 2.5rem;
-        }
-        .combat-sprite.player         { border-color: var(--success);   background: rgba(16,185,129,0.1);  color: var(--success); }
-        .combat-sprite.player.armored { border-color: var(--secondary); background: rgba(0,255,255,0.1);   color: var(--secondary); }
-        .combat-sprite.enemy          { border-color: var(--danger);    background: rgba(239,68,68,0.1);   color: var(--danger); }
-        .combat-sprite.enemy.boss     { border-color: #ff8800;          background: rgba(255,136,0,0.1);   color: #ff8800; font-size: 3rem; }
-
-        .hp-bar-bg   { width: 100%; background: #333; height: 10px; border-radius: 5px; margin-top: 5px; }
-        .hp-bar-fill { height: 100%; background: var(--danger); border-radius: 5px; transition: width 0.3s; }
-        .attacks { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-        .log {
-            height: 80px; overflow-y: auto; font-size: 0.7rem; text-align: left;
-            background: #111; padding: 5px; margin-top: 15px; border-left: 2px solid var(--secondary);
-        }
-        .player-label { font-size: 0.8rem; display: flex; align-items: center; gap: 4px; justify-content: center; }
-
-        @keyframes animLight { 0%{transform:translateX(0)} 50%{transform:translateX(40px)} 100%{transform:translateX(0)} }
-        @keyframes animHeavy { 0%{transform:translateX(0) scale(1)} 30%{transform:translateX(-20px) scale(1.2)} 70%{transform:translateX(50px) scale(1.3)} 100%{transform:translateX(0) scale(1)} }
-        @keyframes animMagic { 0%{transform:translateY(0)} 50%{transform:translateY(-30px) scale(1.1)} 100%{transform:translateY(0)} }
-        .anim-light { animation: animLight 0.3s ease; }
-        .anim-heavy { animation: animHeavy 0.5s ease-in; }
-        .anim-magic { animation: animMagic 0.6s ease-in-out; }
-        .hurt-anim  { filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(5); transform: translateX(-10px); transition: filter 0.1s, transform 0.1s; }
-
-        .equip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
-        .equip-row .ph { font-size: 1.2rem; color: var(--secondary); }
-    </style>
+  .shop-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #0a0a18;
+    border: 1px solid #1a1a33;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .item-name { font-size: 0.82rem; color: #ccccff; }
+  .item-cost { font-size: 0.78rem; color: #aaaa55; }
+  .buy-btn {
+    background: #1a1a44;
+    border: 1px solid #3333aa;
+    color: #8888ff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.72rem;
+  }
+  .buy-btn:hover { background: #222266; color: #aaaaff; }
+</style>
 </head>
 <body>
-<div class="waves"></div>
 
-<div class="header">
-    <h1>SYSTEM ALERT</h1>
-    <div class="status-bar">
-        <div class="stat-item"><i class="ph ph-star" style="color:var(--secondary)"></i> LV: <span id="player-lvl" style="color:var(--secondary)">1</span></div>
-        <div class="stat-item"><i class="ph ph-lightning" style="color:var(--primary-glow)"></i> EXP: <span id="player-exp">0</span>/<span id="player-exp-need">10</span></div>
-        <div class="stat-item"><i class="ph ph-coins" style="color:var(--gold)"></i> <span id="player-gold" style="color:var(--gold)">0</span></div>
-        <div class="stat-item"><i class="ph ph-heart" style="color:var(--success)"></i> <span id="header-hp" style="color:var(--success)">100</span></div>
-    </div>
+<!-- TOP BAR -->
+<div class="system-alert">
+  ☆ <span>LV: 1</span>
+  <span>⚡ EXP: 0 / 10</span>
+  <span>🪙 50</span>
+  <span>💚 100</span>
 </div>
 
-<div class="viewport">
-    <div class="track" id="track">
-
-        <div class="slide">
-            <div class="panel">
-                <h2>
-                    <i class="ph ph-chart-radar"></i> Statistiche
-                    <button class="btn-reset" onclick="resetGame()" style="margin-left:auto;">
-                        <i class="ph ph-arrow-counter-clockwise"></i> Resetta
-                    </button>
-                </h2>
-
-                <div class="radar-wrapper" id="radarWrapper">
-                    <canvas id="radarChart"></canvas>
-
-                    <div class="radar-icon-node" id="node-str">
-                        <div class="radar-icon-circle str">
-                            <i class="ph ph-sword"></i>
-                        </div>
-                    </div>
-
-                    <div class="radar-icon-node" id="node-int">
-                        <div class="radar-icon-circle int">
-                            <i class="ph ph-brain"></i>
-                        </div>
-                    </div>
-
-                    <div class="radar-icon-node" id="node-art">
-                        <div class="radar-icon-circle art">
-                            <i class="ph ph-palette"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="radar-legend">
-                    <div class="radar-legend-item str">
-                        <div class="radar-legend-dot"></div>
-                        FORZA
-                    </div>
-                    <div class="radar-legend-item int">
-                        <div class="radar-legend-dot"></div>
-                        INTELLIGENZA
-                    </div>
-                    <div class="radar-legend-item art">
-                        <div class="radar-legend-dot"></div>
-                        ARTE
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel" style="margin-top:15px;">
-                <h2>
-                    <i class="ph ph-storefront"></i> Negozio di Sistema
-                    <button onclick="manualShopRefresh()" style="margin-left:auto; font-size:0.6rem;">
-                        <i class="ph ph-arrows-clockwise"></i> Aggiorna
-                    </button>
-                </h2>
-                <p style="font-size:0.6rem; color:#888;">Gli oggetti scalano col tuo Livello.</p>
-                <div id="shop-list"></div>
-            </div>
-        </div>
-
-        <div class="slide">
-            <div class="panel">
-                <h2><i class="ph ph-calendar-check"></i> Quest Giornaliere</h2>
-                <div style="margin-bottom:15px; background:rgba(0,0,0,0.5); padding:10px; border-radius:5px;">
-                    <input type="text" id="hab-name" placeholder="Nome Abitudine...">
-                    <div style="display:flex; gap:10px;">
-                        <select id="hab-diff">
-                            <option value="facile">Facile (2XP|10 monete)</option>
-                            <option value="media">Media (4XP|20 monete)</option>
-                            <option value="difficile">Difficile (6XP|40 monete)</option>
-                        </select>
-                        <select id="hab-cat">
-                            <option value="str">Forza</option>
-                            <option value="int">Intelligenza</option>
-                            <option value="art">Arte</option>
-                        </select>
-                    </div>
-                    <button onclick="addHabit()" style="width:100%;">
-                        <i class="ph ph-plus-circle"></i> Registra Abitudine
-                    </button>
-                </div>
-                <div id="habits-list"></div>
-            </div>
-        </div>
-
-        <div class="slide">
-            <div class="panel">
-                <h2><i class="ph ph-skull"></i> Dungeon</h2>
-                <div class="arena">
-                    <div class="combatants">
-                        <div class="sprite-box" style="width:40%;">
-                            <div id="player-sprite" class="combat-sprite player">
-                                <i class="ph ph-person-simple-walk"></i>
-                            </div>
-                            <div class="player-label">Tu <span id="player-wpn-icon"></span></div>
-                            <div class="hp-bar-bg"><div id="pl-hp" class="hp-bar-fill" style="background:var(--success);"></div></div>
-                        </div>
-                        <div style="font-size:1.5rem; color:var(--danger); align-self:center;">VS</div>
-                        <div class="sprite-box" style="width:40%;">
-                            <div id="enemy-sprite" class="combat-sprite enemy">
-                                <i class="ph ph-smiley-x-eyes"></i>
-                            </div>
-                            <div id="enemy-name" style="color:var(--danger); font-size:0.8rem;">Goblin</div>
-                            <div class="hp-bar-bg"><div id="en-hp" class="hp-bar-fill"></div></div>
-                        </div>
-                    </div>
-                    <div class="attacks">
-                        <button onclick="attack('light')"><i class="ph ph-sword"></i> Base</button>
-                        <button onclick="attack('heavy')" style="border-color:orange; color:orange;"><i class="ph ph-axe"></i> Forte</button>
-                        <button onclick="attack('magic')" style="border-color:var(--secondary); color:var(--secondary);"><i class="ph ph-magic-wand"></i> Magia</button>
-                    </div>
-                    <div id="combat-log" class="log">Sistema inizializzato. Ingresso nel Dungeon...<br></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide">
-            <div class="panel">
-                <h2><i class="ph ph-backpack"></i> Inventario Personale</h2>
-                <p style="font-size:0.7rem; color:#888;">Equipaggiamento Attuale:</p>
-                <div style="background:#111; padding:10px; border:1px solid #333; margin-bottom:15px;">
-                    <div class="equip-row"><i class="ph ph-sword"></i> Arma: <span id="eq-weapon" style="color:var(--secondary)">Nessuna</span></div>
-                    <div class="equip-row"><i class="ph ph-shield"></i> Armatura: <span id="eq-armor" style="color:var(--secondary)">Nessuna</span></div>
-                </div>
-                <p style="font-size:0.7rem; color:#888;">Zaino:</p>
-                <div id="inventory-list"></div>
-            </div>
-        </div>
-
-    </div>
+<!-- NAV -->
+<div class="nav">
+  <button>← INDIETRO</button>
+  <span>1. STATS &amp; SHOP</span>
+  <button>AVANTI →</button>
 </div>
 
-<div class="nav-controls">
-    <button onclick="changeSlide(-1)"><i class="ph ph-arrow-left"></i> Indietro</button>
-    <span id="slide-indicator" style="font-size:0.8rem; color:var(--secondary); text-align:center;">1. STATS & SHOP</span>
-    <button onclick="changeSlide(1)">Avanti <i class="ph ph-arrow-right"></i></button>
+<!-- STATS CARD -->
+<div class="card">
+  <div class="stats-header">
+    <h2>Statistiche</h2>
+    <button class="reset-btn">RESETTA</button>
+  </div>
+
+  <!-- RADAR -->
+  <div class="radar-wrap">
+    <div class="radar-labels" id="radarContainer">
+      <svg id="radarSvg" viewBox="0 0 260 260"></svg>
+    </div>
+  </div>
+
+  <!-- BARS -->
+  <div id="statBars"></div>
+</div>
+
+<!-- SHOP CARD -->
+<div class="card">
+  <div class="shop-header">
+    <h2>Negozio di Sistema</h2>
+    <button class="refresh-btn">AGGIORNA</button>
+  </div>
+  <div id="shopItems">
+    <div class="shop-item">
+      <span class="item-name">Pozione Forza</span>
+      <span class="item-cost">🪙 30</span>
+      <button class="buy-btn">ACQUISTA</button>
+    </div>
+    <div class="shop-item">
+      <span class="item-name">Libro di Saggezza</span>
+      <span class="item-cost">🪙 50</span>
+      <button class="buy-btn">ACQUISTA</button>
+    </div>
+    <div class="shop-item">
+      <span class="item-name">Kit Artistico</span>
+      <span class="item-cost">🪙 40</span>
+      <button class="buy-btn">ACQUISTA</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    // =============================================
-    // COSTANTI ICONE
-    // =============================================
-    const ENEMY_ICONS = {
-        normal: ["ph-smiley-x-eyes","ph-dog","ph-ghost","ph-alien"],
-        boss:   "ph-dragon"
-    };
-    const ITEM_ICONS = {
-        weapon_sword: "ph-sword",
-        weapon_wand:  "ph-magic-wand",
-        armor:        "ph-shield",
-        potion:       "ph-flask",
-        freeze:       "ph-snowflake"
-    };
-    function phIcon(cls, extraStyle) {
-        return `<i class="ph ${cls}" style="${extraStyle||''}"></i>`;
-    }
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const STATS = [
+  { name: 'FORZA',        value: 30, color: '#ff6666' },
+  { name: 'INTELLIGENZA', value: 60, color: '#6699ff' },
+  { name: 'ARTE',         value: 45, color: '#cc66ff' },
+];
+const MAX_VAL = 100;
 
-    // =============================================
-    // STATO GLOBALE
-    // =============================================
-    let player = {
-        level:1, exp:0, expNeeded:10, gold:50,
-        stats:{str:5, int:5, art:5},
-        hp:100, maxHp:100,
-        equippedWeapon:null, equippedArmor:null,
-        inventory:[]
-    };
-    let habitsArray = [];
-    let habitCharts = {};
-    let shopItems   = [];
-    let bossCounter = 0;
-    let enemy = { name:"Goblin", hp:30, maxHp:30, iconClass:"ph-smiley-x-eyes", power:3, isBoss:false };
-    let currentSlide = 0;
-    const slideNames = ["1. STATS & SHOP","2. ABITUDINI","3. DUNGEON","4. INVENTARIO"];
+// ── RADAR ────────────────────────────────────────────────────────────────────
+// SVG viewBox is 260×260; centre = (130,130)
+// We use a slightly smaller radius so labels fit inside the container.
+const CX = 130, CY = 130;
+const R_GRID  = 90;   // max grid radius
+const R_LABEL = 112;  // label anchor radius (beyond grid)
+const AXES    = STATS.length; // 3
 
-    // =============================================
-    // POSIZIONAMENTO ICONE SUGLI ANGOLI DEL RADAR
-    // =============================================
-    function positionRadarIcons() {
-        const chart = radarChart;
-        // Interrompiamo se il grafico non è ancora pronto o se mancano le scale
-        if (!chart || !chart.scales.r) return;
+/**
+ * Return (x, y) for axis i of n, starting straight UP (−90°),
+ * going clockwise. This gives:
+ *   i=0 → top (FORZA)
+ *   i=1 → bottom-right (INTELLIGENZA)
+ *   i=2 → bottom-left (ARTE)
+ */
+function axisPoint(i, n, r) {
+  const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+  return {
+    x: CX + r * Math.cos(angle),
+    y: CY + r * Math.sin(angle),
+  };
+}
 
-        const scale = chart.scales.r;
-        
-        // Usiamo il valore massimo attuale della scala per trovare l'anello più esterno
-        const maxVal = scale.max || 5; 
+function buildRadar() {
+  const svg = document.getElementById('radarSvg');
+  svg.innerHTML = '';
 
-        const ids = ['node-str','node-int','node-art'];
-        
-        // Quanti pixel fuori dal vertice spingere l'icona
-        const offset = 22; 
-        
-        // Angoli in radianti per i 3 vertici base del triangolo di Chart.js
-        // 0=Forza(Top, -90°), 1=Intelligenza(Bottom-Right, 30°), 2=Arte(Bottom-Left, 150°)
-        const angles = [-90, 30, 150].map(deg => deg * Math.PI / 180);
+  const ns = '[w3.org](http://www.w3.org/2000/svg)';
 
-        ids.forEach((id, i) => {
-            const el = document.getElementById(id);
-            if (!el) return;
+  // ── grid rings (3 levels) ──
+  [0.33, 0.66, 1].forEach(t => {
+    const pts = STATS.map((_, i) => {
+      const p = axisPoint(i, AXES, R_GRID * t);
+      return `${p.x},${p.y}`;
+    }).join(' ');
 
-            // API nativa di Chart.js: restituisce dinamicamente le coordinate x,y in Pixel CSS per un dato valore
-            const point = scale.getPointPositionForValue(i, maxVal);
+    const poly = document.createElementNS(ns, 'polygon');
+    poly.setAttribute('points', pts);
+    poly.setAttribute('fill', 'none');
+    poly.setAttribute('stroke', '#222244');
+    poly.setAttribute('stroke-width', '1');
+    svg.appendChild(poly);
+  });
 
-            // Applichiamo la matematica radiale: spingiamo dal punto 'point' verso l'esterno
-            const px = point.x + Math.cos(angles[i]) * offset;
-            const py = point.y + Math.sin(angles[i]) * offset;
+  // ── axis lines ──
+  STATS.forEach((_, i) => {
+    const p = axisPoint(i, AXES, R_GRID);
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', CX); line.setAttribute('y1', CY);
+    line.setAttribute('x2', p.x); line.setAttribute('y2', p.y);
+    line.setAttribute('stroke', '#222244');
+    line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+  });
 
-            el.style.left = px + 'px';
-            el.style.top  = py + 'px';
-        });
-    }
+  // ── data polygon ──
+  const dataPts = STATS.map((s, i) => {
+    const r = (s.value / MAX_VAL) * R_GRID;
+    const p = axisPoint(i, AXES, r);
+    return `${p.x},${p.y}`;
+  }).join(' ');
 
-    // =============================================
-    // GRAFICO RADAR
-    // =============================================
-    const ctxRadar = document.getElementById('radarChart').getContext('2d');
-    let radarChart = new Chart(ctxRadar, {
-        type: 'radar',
-        data: {
-            labels: ['', '', ''],   // label vuote: i nomi li gestiamo noi
-            datasets: [{
-                data: [5,5,5],
-                backgroundColor: 'rgba(138,43,226,0.2)',
-                borderColor: '#8a2be2',
-                pointBackgroundColor: '#00ffff',
-                pointRadius: 4,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            layout: {
-                // IMPORTANTISSIMO: crea lo spazio necessario dentro il canvas per ospitare le icone sfalsate
-                padding: 40 
-            },
-            animation: {
-                onComplete: positionRadarIcons,
-                onProgress: positionRadarIcons
-            },
-            scales: {
-                r: {
-                    angleLines:  { color:'#333' },
-                    grid:        { color:'#333' },
-                    pointLabels: { display: false },   // nascondiamo le label testuali di Chart.js
-                    ticks:       { display: false },
-                    suggestedMin: 0
-                }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
+  const dataPoly = document.createElementNS(ns, 'polygon');
+  dataPoly.setAttribute('points', dataPts);
+  dataPoly.setAttribute('fill', 'rgba(100,100,255,0.18)');
+  dataPoly.setAttribute('stroke', '#6666ff');
+  dataPoly.setAttribute('stroke-width', '2');
+  svg.appendChild(dataPoly);
 
-    // Riposiziona al ridimensionamento della finestra per reattività impeccabile
-    window.addEventListener('resize', () => { setTimeout(positionRadarIcons, 100); });
+  // ── data dots ──
+  STATS.forEach((s, i) => {
+    const r = (s.value / MAX_VAL) * R_GRID;
+    const p = axisPoint(i, AXES, r);
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', '4');
+    circle.setAttribute('fill', s.color);
+    svg.appendChild(circle);
+  });
 
-    // =============================================
-    // SALVATAGGIO E RESTORE
-    // =============================================
-    function saveGame() {
-        localStorage.setItem('soloLevelingSave', JSON.stringify({player, habits:habitsArray, shopItems, bossCounter, enemy}));
-    }
-    function loadGame() {
-        const raw = localStorage.getItem('soloLevelingSave');
-        if (raw) {
-            try {
-                const d = JSON.parse(raw);
-                player      = d.player;
-                habitsArray = d.habits    || [];
-                shopItems   = d.shopItems || [];
-                bossCounter = d.bossCounter || 0;
-                if (d.enemy) enemy = d.enemy;
-            } catch(e) { console.error(e); }
-        } else {
-            generateShop();
-            updateEnemy();
-        }
-        applyPlayerSprite();
-        applyEnemySprite();
-    }
-    function resetGame() {
-        if (confirm("Sei sicuro di voler resettare tutti i progressi? Azione irreversibile!")) {
-            localStorage.removeItem('soloLevelingSave');
-            location.reload();
-        }
-    }
+  // ── axis tip dots ──
+  STATS.forEach((_, i) => {
+    const p = axisPoint(i, AXES, R_GRID);
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', p.x);
+    dot.setAttribute('cy', p.y);
+    dot.setAttribute('r', '3');
+    dot.setAttribute('fill', '#444488');
+    svg.appendChild(dot);
+  });
 
-    // =============================================
-    // SPRITE HELPERS
-    // =============================================
-    function applyPlayerSprite() {
-        const box = document.getElementById('player-sprite');
-        if (!box) return;
-        if (player.equippedArmor) {
-            box.className = 'combat-sprite player armored';
-            box.innerHTML = phIcon('ph-shield-chevron','font-size:2.5rem');
-        } else {
-            box.className = 'combat-sprite player';
-            box.innerHTML = phIcon('ph-person-simple-walk','font-size:2.5rem');
-        }
-        const wpnSpan = document.getElementById('player-wpn-icon');
-        if (wpnSpan) wpnSpan.innerHTML = player.equippedWeapon ? phIcon(player.equippedWeapon.iconClass,'font-size:1rem; color:var(--secondary)') : '';
-    }
-    function applyEnemySprite() {
-        const box = document.getElementById('enemy-sprite');
-        if (!box) return;
-        box.className = enemy.isBoss ? 'combat-sprite enemy boss' : 'combat-sprite enemy';
-        box.innerHTML = phIcon(enemy.iconClass,'font-size:2.5rem');
-        const nameEl = document.getElementById('enemy-name');
-        if (nameEl) nameEl.innerText = enemy.name;
-    }
+  // ── labels (SVG text so they share the same coordinate system) ──
+  STATS.forEach((s, i) => {
+    const p = axisPoint(i, AXES, R_LABEL);
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('x', p.x);
+    text.setAttribute('y', p.y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', '#8888cc');
+    text.setAttribute('font-size', '11');
+    text.setAttribute('font-family', 'Segoe UI, sans-serif');
+    text.textContent = s.name;
+    svg.appendChild(text);
+  });
+}
 
-    // =============================================
-    // NAVIGAZIONE
-    // =============================================
-    function changeSlide(dir) {
-        currentSlide = Math.max(0, Math.min(3, currentSlide + dir));
-        document.getElementById('track').style.transform = `translateX(-${currentSlide * 25}%)`;
-        document.getElementById('slide-indicator').innerText = slideNames[currentSlide];
-        if (currentSlide === 0) { radarChart.resize(); setTimeout(positionRadarIcons, 100); }
-        if (currentSlide === 1) renderHabits();
-    }
+// ── BARS ─────────────────────────────────────────────────────────────────────
+function buildBars() {
+  const container = document.getElementById('statBars');
+  container.innerHTML = '';
+  STATS.forEach(s => {
+    container.innerHTML += `
+      <div class="stat-row">
+        <span class="stat-name">${s.name}</span>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${s.value}%; background: linear-gradient(90deg, ${s.color}88, ${s.color});"></div>
+        </div>
+        <span class="stat-val">${s.value}</span>
+      </div>`;
+  });
+}
 
-    // =============================================
-    // ABITUDINI
-    // =============================================
-    function addHabit() {
-        const name = document.getElementById('hab-name').value;
-        const diff = document.getElementById('hab-diff').value;
-        const cat  = document.getElementById('hab-cat').value;
-        if (!name) return;
-        habitsArray.push({ id:Date.now(), name, diff, cat, history:[] });
-        document.getElementById('hab-name').value = '';
-        renderHabits(); saveGame();
-    }
-    function handleHabit(id, isDone, isFrozen=false) {
-        const h = habitsArray.find(x => x.id === id);
-        let xpR   = h.diff==='facile' ? 2 : h.diff==='media' ? 4 : 6;
-        let goldR = h.diff==='facile' ? 10 : h.diff==='media' ? 20 : 40;
-        if (isFrozen) {
-            h.history.push(0.5);
-            sysLog(`Abitudine '${h.name}' congelata.`);
-        } else if (isDone) {
-            player.exp += xpR; player.gold += goldR; player.stats[h.cat] += 1;
-            h.history.push(1);
-            sysLog(`+${xpR}XP, +${goldR} monete da ${h.name}.`);
-        } else {
-            player.gold = Math.max(0, player.gold - goldR);
-            h.history.push(0);
-            sysLog(`Fallito ${h.name}. Persi ${goldR} monete.`);
-        }
-        if (h.history.length > 7) h.history.shift();
-        checkLevelUp(); updateUI(); renderHabits(); saveGame();
-    }
-    function useFreezePotion(habitId) {
-        let potIndex = player.inventory.findIndex(i => i.type==='freeze');
-        if (potIndex > -1) { player.inventory.splice(potIndex,1); handleHabit(habitId,false,true); }
-    }
-    function checkLevelUp() {
-        if (player.exp >= player.expNeeded) {
-            player.exp -= player.expNeeded; player.level++; player.expNeeded += 2;
-            player.maxHp += 10; player.hp = player.maxHp;
-            generateShop(); rewardLevelUp();
-            alert(`LEVEL UP! Sei al livello ${player.level}! Negozio aggiornato.`);
-        }
-    }
-    function rewardLevelUp() {
-        let r = Math.random();
-        if (r < 0.4) { player.gold += 100; sysLog("Ricompensa Lvl: 100 monete"); }
-        else if (r < 0.7) { player.inventory.push({id:Date.now(),name:"Pozione Cura",type:"potion",iconClass:ITEM_ICONS.potion,power:player.level*20,cost:20}); sysLog("Ricompensa Lvl: Pozione"); }
-        else { player.inventory.push({id:Date.now(),name:"Spada Lvl UP",type:"weapon",iconClass:ITEM_ICONS.weapon_sword,power:player.level*5,cost:50,scale:'str'}); sysLog("Ricompensa Lvl: Arma!"); }
-    }
-    function renderHabits() {
-        const list = document.getElementById('habits-list');
-        list.innerHTML = '';
-        let hasFreeze = player.inventory.some(i => i.type==='freeze');
-        habitsArray.forEach(h => {
-            const div = document.createElement('div');
-            div.className='list-item'; div.style.flexDirection='column'; div.style.alignItems='flex-start';
-            let freezeBtn = hasFreeze ? `<button class="btn-freeze" onclick="useFreezePotion(${h.id})">${phIcon('ph-snowflake')} Congela</button>` : '';
-            const catIcon  = h.cat==='str' ? 'ph-sword'   : h.cat==='int' ? 'ph-brain'   : 'ph-palette';
-            const catColor = h.cat==='str' ? '#ef4444'    : h.cat==='int' ? '#00ffff'    : '#a855f7';
-            div.innerHTML = `
-                <div style="width:100%;display:flex;justify-content:space-between;align-items:center;">
-                    <strong>${h.name}</strong>
-                    <span style="font-size:0.6rem;color:#888;display:flex;align-items:center;gap:4px;">
-                        ${phIcon(catIcon,`color:${catColor};font-size:0.9rem`)} ${h.diff.toUpperCase()}
-                    </span>
-                </div>
-                <div class="habit-actions">
-                    <button class="btn-done" onclick="handleHabit(${h.id},true)">${phIcon('ph-check-circle')} Fatto</button>
-                    <button class="btn-fail"  onclick="handleHabit(${h.id},false)">${phIcon('ph-x-circle')} Saltato</button>
-                    ${freezeBtn}
-                </div>
-                <div class="chart-container-small"><canvas id="chart-${h.id}"></canvas></div>`;
-            list.appendChild(div);
-            const ctx = document.getElementById(`chart-${h.id}`).getContext('2d');
-            if (habitCharts[h.id]) habitCharts[h.id].destroy();
-            habitCharts[h.id] = new Chart(ctx,{
-                type:'line',
-                data:{ labels:h.history.map((_,i)=>i), datasets:[{data:h.history,borderColor:'#00ffff',tension:0.3,borderWidth:2,pointRadius:1}] },
-                options:{ responsive:true, maintainAspectRatio:false, scales:{y:{min:0,max:1.2,display:false},x:{display:false}}, plugins:{legend:{display:false}} }
-            });
-        });
-    }
-
-    // =============================================
-    // SHOP & INVENTARIO
-    // =============================================
-    function generateShop() {
-        shopItems=[];
-        let lvl=player.level;
-        shopItems.push({id:Date.now()+1,name:"Spada Lvl."+lvl,  type:"weapon",iconClass:ITEM_ICONS.weapon_sword,power:5+(lvl*3), cost:30+(lvl*15),scale:'str'});
-        shopItems.push({id:Date.now()+2,name:"Scettro Lvl."+lvl, type:"weapon",iconClass:ITEM_ICONS.weapon_wand, power:5+(lvl*3), cost:40+(lvl*15),scale:'int'});
-        shopItems.push({id:Date.now()+3,name:"Corazza Lvl."+lvl, type:"armor", iconClass:ITEM_ICONS.armor,       power:15+(lvl*10),cost:50+(lvl*20)});
-        shopItems.push({id:Date.now()+4,name:"Pozione Minore",   type:"potion",iconClass:ITEM_ICONS.potion,      power:30+(lvl*5), cost:20+(lvl*5)});
-        renderShop(); saveGame();
-    }
-    function manualShopRefresh() { generateShop(); }
-    function renderShop() {
-        const list=document.getElementById('shop-list'); list.innerHTML='';
-        shopItems.forEach(item=>{
-            let canBuy=player.gold>=item.cost;
-            list.innerHTML+=`
-                <div class="list-item">
-                    <div class="item-info">
-                        ${phIcon(item.iconClass,'font-size:1rem;vertical-align:middle;color:var(--secondary)')} ${item.name}<br>
-                        <span style="color:#aaa;display:flex;align-items:center;gap:4px;margin-top:2px;">
-                            ${phIcon('ph-lightning','font-size:0.8rem')} +${item.power} &nbsp;
-                            ${phIcon('ph-coins','font-size:0.8rem;color:var(--gold)')} ${item.cost}
-                        </span>
-                    </div>
-                    <button onclick="buyItem(${item.id})" ${!canBuy?'disabled':''}>
-                        ${canBuy ? phIcon('ph-shopping-cart')+' Compra' : phIcon('ph-prohibit')+' No Denaro'}
-                    </button>
-                </div>`;
-        });
-    }
-    function buyItem(id) {
-        let idx=shopItems.findIndex(x=>x.id===id); let item=shopItems[idx];
-        if(player.gold>=item.cost){ player.gold-=item.cost; player.inventory.push({...item}); shopItems.splice(idx,1); sysLog(`Comprato ${item.name}.`); updateUI(); saveGame(); }
-    }
-    function renderInventory() {
-        document.getElementById('eq-weapon').innerHTML = player.equippedWeapon ? `${phIcon(player.equippedWeapon.iconClass,'font-size:1rem;vertical-align:middle')} ${player.equippedWeapon.name}` : "Nessuna";
-        document.getElementById('eq-armor').innerHTML  = player.equippedArmor  ? `${phIcon(player.equippedArmor.iconClass,'font-size:1rem;vertical-align:middle')} ${player.equippedArmor.name}`  : "Nessuna";
-        const list=document.getElementById('inventory-list'); list.innerHTML='';
-        if(player.inventory.length===0){ list.innerHTML="<p style='font-size:0.7rem'>Zaino vuoto.</p>"; return; }
-        player.inventory.forEach((item,index)=>{
-            let actionBtn="";
-            if(item.type==='weapon'||item.type==='armor') actionBtn=`<button onclick="equipItem(${index})">${phIcon('ph-hand')} Equip</button>`;
-            if(item.type==='potion') actionBtn=`<button onclick="usePotion(${index})" style="border-color:var(--success);color:var(--success)">${phIcon('ph-flask')} Usa</button>`;
-            if(item.type==='freeze') actionBtn=`<span style="font-size:0.6rem;color:var(--secondary)">${phIcon('ph-snowflake')} Usa in Abitudini</span>`;
-            list.innerHTML+=`
-                <div class="list-item">
-                    <div class="item-info">
-                        ${phIcon(item.iconClass,'font-size:1rem;vertical-align:middle;color:var(--secondary)')} ${item.name}
-                        <span style="color:#aaa;"> (Val: ${Math.floor(item.cost/2)} monete)</span>
-                    </div>
-                    <div class="item-actions">
-                        ${actionBtn}
-                        <button onclick="sellItem(${index})" style="border-color:var(--danger);color:var(--danger)">${phIcon('ph-hand-coins')} Vendi</button>
-                    </div>
-                </div>`;
-        });
-    }
-    function equipItem(index) {
-        let item=player.inventory[index]; player.inventory.splice(index,1);
-        if(item.type==='weapon'){ if(player.equippedWeapon) player.inventory.push(player.equippedWeapon); player.equippedWeapon=item; }
-        else if(item.type==='armor'){ if(player.equippedArmor){ player.inventory.push(player.equippedArmor); player.maxHp-=player.equippedArmor.power; } player.equippedArmor=item; player.maxHp+=item.power; player.hp=player.maxHp; }
-        applyPlayerSprite(); sysLog(`Equipaggiato ${item.name}.`); updateUI(); saveGame();
-    }
-    function sellItem(index){ let item=player.inventory[index]; player.gold+=Math.floor(item.cost/2); player.inventory.splice(index,1); updateUI(); saveGame(); }
-    function usePotion(index){ let item=player.inventory[index]; if(item.type==='potion'){ player.hp=Math.min(player.maxHp,player.hp+item.power); player.inventory.splice(index,1); sysLog(`Curati ${item.power} HP.`); updateUI(); saveGame(); } }
-
-    // =============================================
-    // COMBATTIMENTO
-    // =============================================
-    function updateEnemy() {
-        let eLvl=player.level; enemy.isBoss=(bossCounter%5===4);
-        if(enemy.isBoss){ enemy.name="BOSS: Drago Reame"; enemy.iconClass=ENEMY_ICONS.boss; enemy.maxHp=100+(eLvl*30); enemy.power=10+(eLvl*5); }
-        else{ enemy.name="Mostro Liv."+eLvl; enemy.iconClass=ENEMY_ICONS.normal[Math.floor(Math.random()*ENEMY_ICONS.normal.length)]; enemy.maxHp=20+(eLvl*10); enemy.power=3+(eLvl*2); }
-        enemy.hp=enemy.maxHp; applyEnemySprite(); updateHpBars(); saveGame();
-    }
-    function attack(type) {
-        if(enemy.hp<=0||player.hp<=0) return;
-        const pBox=document.getElementById('player-sprite');
-        pBox.classList.remove('anim-light','anim-heavy','anim-magic'); void pBox.offsetWidth;
-        if(type==='light') pBox.classList.add('anim-light');
-        if(type==='heavy') pBox.classList.add('anim-heavy');
-        if(type==='magic') pBox.classList.add('anim-magic');
-        let wpn=player.equippedWeapon; let dmg=1;
-        if(type==='light')      dmg=(wpn&&wpn.scale==='str'?wpn.power:2)+player.stats.str;
-        else if(type==='heavy') dmg=((wpn&&wpn.scale==='str'?wpn.power:2)*1.5)+(player.stats.str*1.2)-3;
-        else if(type==='magic') dmg=(wpn&&wpn.scale==='int'?wpn.power:0)+(player.stats.int*2);
-        dmg=Math.max(1,Math.floor(dmg));
-        enemy.hp-=dmg; sysLog(`Usi ${type}! Danni: ${dmg}`);
-        const eBox=document.getElementById('enemy-sprite');
-        eBox.classList.add('hurt-anim'); setTimeout(()=>eBox.classList.remove('hurt-anim'),300);
-        if(enemy.hp<=0){
-            enemy.hp=0; updateHpBars(); sysLog(`Sconfitto ${enemy.name}!`); bossCounter++;
-            if(enemy.isBoss){ player.inventory.push({id:Date.now(),name:"Pozione Riposo",type:"freeze",iconClass:ITEM_ICONS.freeze,power:0,cost:100}); sysLog("DROP: POZIONE RIPOSO!"); }
-            player.gold+=enemy.isBoss?50:10; updateUI(); saveGame();
-            setTimeout(updateEnemy,1500); return;
-        }
-        updateHpBars(); saveGame();
-        setTimeout(()=>{
-            if(enemy.hp>0){
-                let armorDef=player.equippedArmor?(player.equippedArmor.power*0.2):0;
-                let eDmg=Math.max(1,Math.floor(enemy.power-armorDef));
-                player.hp-=eDmg; sysLog(`Subiti ${eDmg} danni.`);
-                pBox.classList.add('hurt-anim'); setTimeout(()=>pBox.classList.remove('hurt-anim'),300);
-                if(player.hp<=0){ player.hp=0; sysLog("SEI MORTO. Usa una pozione per continuare."); }
-                updateHpBars(); saveGame();
-            }
-        },800);
-    }
-
-    // =============================================
-    // UTILITY
-    // =============================================
-    function sysLog(msg){ const lb=document.getElementById('combat-log'); lb.innerHTML+=`> ${msg}<br>`; lb.scrollTop=lb.scrollHeight; }
-    function updateUI(){
-        document.getElementById('player-lvl').innerText      = player.level;
-        document.getElementById('player-exp').innerText      = player.exp;
-        document.getElementById('player-exp-need').innerText = player.expNeeded;
-        document.getElementById('player-gold').innerText     = player.gold;
-        document.getElementById('header-hp').innerText       = player.hp;
-        radarChart.data.datasets[0].data=[player.stats.str,player.stats.int,player.stats.art];
-        radarChart.update();
-        renderShop(); renderInventory(); renderHabits(); updateHpBars();
-        applyPlayerSprite(); applyEnemySprite();
-        setTimeout(positionRadarIcons, 50);
-    }
-    function updateHpBars(){
-        const plBar=document.getElementById('pl-hp'); const enBar=document.getElementById('en-hp');
-        if(plBar) plBar.style.width=`${(player.hp/player.maxHp)*100}%`;
-        if(enBar) enBar.style.width=`${(enemy.hp/enemy.maxHp)*100}%`;
-        document.getElementById('header-hp').innerText=player.hp;
-    }
-
-    // =============================================
-    // INIT
-    // =============================================
-    loadGame();
-    updateUI();
-    // Posiziona le icone dopo il render finale del canvas
-    setTimeout(positionRadarIcons, 300);
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildRadar();
+buildBars();
 </script>
 </body>
 </html>
